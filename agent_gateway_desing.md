@@ -40,11 +40,11 @@ These are measurable constraints—treat them as non-negotiable:
 
 ```mermaid
 flowchart LR
-  Dev[Developer/Seller] --> Agent[Code Agent\n(Clawdbot/Windsurf/etc.)]
-  Agent --> GH[GitHub Repo & PRs]
+  Dev["Developer/Seller"] --> Agent["Code Agent<br/>(Clawdbot/Windsurf/etc.)"]
+  Agent --> GH["GitHub Repo & PRs"]
 
-  subgraph System[AgentShield: PR Guardrails Gateway]
-    App[AgentShield GitHub App\n(PR Checks + Policy Gate)]
+  subgraph System["AgentShield: PR Guardrails Gateway"]
+    App["AgentShield GitHub App<br/>(PR Checks + Policy Gate)"]
   end
 
   GH --> App
@@ -52,8 +52,8 @@ flowchart LR
 
   App --> Dev
 
-  App --> Audit[(Audit Log)]
-  App --> Policy[(Policy Store\npolicy.yaml / org policies)]
+  App --> Audit[("Audit Log")]
+  App --> Policy[("Policy Store<br/>policy.yaml / org policies")]
 ```
 
 ### Context Notes
@@ -67,19 +67,19 @@ flowchart LR
 ```mermaid
 flowchart LR
   subgraph Client
-    Agent[Code Agent\n(Local / Cloud)]
+    Agent["Code Agent<br/>(Local / Cloud)"]
   end
 
   subgraph Platform
-    GH[GitHub\nRepo + PR + Checks]
+    GH["GitHub<br/>Repo + PR + Checks"]
   end
 
-  subgraph Backend[AgentShield Backend]
-    Webhook[Webhook Receiver\n(PR events)]
-    Eval[Policy Evaluation Service]
-    Check[Check Publisher\n(Status + Comments)]
-    Audit[(Audit Log Store)]
-    Policy[(Policy Store)]
+  subgraph Backend["AgentShield Backend"]
+    Webhook["Webhook Receiver<br/>(PR events)"]
+    Eval["Policy Evaluation Service"]
+    Check["Check Publisher<br/>(Status + Comments)"]
+    Audit[("Audit Log Store")]
+    Policy[("Policy Store")]
   end
 
   Agent --> GH
@@ -105,12 +105,12 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Ingress[Ingress\nValidate + Normalize] --> Diff[Diff Fetcher\n(files + hunks)]
-  Diff --> Rules[Rules Engine\n(deny/allow/warn)]
-  Rules --> Risk[Risk Aggregator\n(score + reasons)]
-  Risk --> Decision[Decision Engine\nALLOW / REQUIRE_APPROVAL / BLOCK]
-  Decision --> Explain[Explanation Builder\n(remediation steps)]
-  Explain --> Out[Result Contract\n(check payload)]
+  Ingress["Ingress<br/>Validate + Normalize"] --> Diff["Diff Fetcher<br/>(files + hunks)"]
+  Diff --> Rules["Rules Engine<br/>(deny/allow/warn)"]
+  Rules --> Risk["Risk Aggregator<br/>(score + reasons)"]
+  Risk --> Decision["Decision Engine<br/>ALLOW / REQUIRE_APPROVAL / BLOCK"]
+  Decision --> Explain["Explanation Builder<br/>(remediation steps)"]
+  Explain --> Out["Result Contract<br/>(check payload)"]
 ```
 
 ### Example Deterministic Rules
@@ -148,12 +148,12 @@ Important constraints:
 
 ```mermaid
 flowchart LR
-  Dev[Developer/Seller] --> Agent[Code Agent\n(Clawdbot/Windsurf/etc.)]
-  Agent --> GH[GitHub Repo & PRs]
+  Dev["Developer/Seller"] --> Agent["Code Agent<br/>(Clawdbot/Windsurf/etc.)"]
+  Agent --> GH["GitHub Repo & PRs"]
 
-  subgraph System[AgentShield: PR Guardrails Gateway]
-    App[AgentShield GitHub App\n(PR Checks + Policy Gate)]
-    Local[Local Guard Service\n(on Mac)\nTiny Guardian Model]
+  subgraph System["AgentShield: PR Guardrails Gateway"]
+    App["AgentShield GitHub App<br/>(PR Checks + Policy Gate)"]
+    Local["Local Guard Service<br/>(on Mac)<br/>Tiny Guardian Model"]
   end
 
   GH --> App
@@ -162,8 +162,8 @@ flowchart LR
 
   App --> Local
 
-  App --> Audit[(Audit Log)]
-  App --> Policy[(Policy Store\npolicy.yaml / org policies)]
+  App --> Audit[("Audit Log")]
+  App --> Policy[("Policy Store<br/>policy.yaml / org policies")]
 ```
 
 ---
@@ -173,20 +173,20 @@ flowchart LR
 ```mermaid
 flowchart LR
   subgraph Client
-    Agent[Code Agent]
-    Local[Local Guard Service\nTiny Model + Detectors]
+    Agent["Code Agent"]
+    Local["Local Guard Service<br/>Tiny Model + Detectors"]
   end
 
   subgraph Platform
-    GH[GitHub\nRepo + PR + Checks]
+    GH["GitHub<br/>Repo + PR + Checks"]
   end
 
-  subgraph Backend[AgentShield Backend]
-    Webhook[Webhook Receiver]
-    Eval[Policy Evaluation Service]
-    Check[Check Publisher]
-    Audit[(Audit Log Store)]
-    Policy[(Policy Store)]
+  subgraph Backend["AgentShield Backend"]
+    Webhook["Webhook Receiver"]
+    Eval["Policy Evaluation Service"]
+    Check["Check Publisher"]
+    Audit[("Audit Log Store")]
+    Policy[("Policy Store")]
   end
 
   Agent --> GH
@@ -219,20 +219,20 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Ingress[Ingress\nValidate + Normalize] --> Diff[Diff Fetcher]
-  Diff --> Rules[Rules Engine\n(deterministic)]
-  Rules --> BaseRisk[Base Risk\n(score + reasons)]
+  Ingress["Ingress<br/>Validate + Normalize"] --> Diff["Diff Fetcher"]
+  Diff --> Rules["Rules Engine<br/>(deterministic)"]
+  Rules --> BaseRisk["Base Risk<br/>(score + reasons)"]
 
-  Diff --> Bundle[Redaction + Bundle Builder]
-  Bundle --> LocalCall[Call Local Guard]
-  LocalCall --> Signals[Signal Interpreter\n(map to risk adjustments)]
+  Diff --> Bundle["Redaction + Bundle Builder"]
+  Bundle --> LocalCall["Call Local Guard"]
+  LocalCall --> Signals["Signal Interpreter<br/>(map to risk adjustments)"]
 
-  BaseRisk --> Merge[Risk Merge\n(rule risk + model risk)]
+  BaseRisk --> Merge["Risk Merge<br/>(rule risk + model risk)"]
   Signals --> Merge
 
-  Merge --> Decision[Decision Engine\nALLOW / REQUIRE_APPROVAL / BLOCK]
-  Decision --> Explain[Explanation Builder\n(rule + model reasons)]
-  Explain --> Out[Result Contract]
+  Merge --> Decision["Decision Engine<br/>ALLOW / REQUIRE_APPROVAL / BLOCK"]
+  Decision --> Explain["Explanation Builder<br/>(rule + model reasons)"]
+  Explain --> Out["Result Contract"]
 ```
 
 **Decision principle:** model can only push toward *more caution*:
@@ -246,12 +246,12 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  In[Request Ingress] --> Redact[Redactor\n(strip secrets/PII)]
-  Redact --> Detect[Detectors\n(regex + heuristics)]
-  Detect --> Model[Tiny Guardian Model\n(classify intent/injection/risk)]
-  Model --> Score[Risk Scorer\ncombine detectors + model]
-  Score --> Explain[Explanation Builder]
-  Explain --> Out[Response\n(risk_score + signals)]
+  In["Request Ingress"] --> Redact["Redactor<br/>(strip secrets/PII)"]
+  Redact --> Detect["Detectors<br/>(regex + heuristics)"]
+  Detect --> Model["Tiny Guardian Model<br/>(classify intent/injection/risk)"]
+  Model --> Score["Risk Scorer<br/>combine detectors + model"]
+  Score --> Explain["Explanation Builder"]
+  Explain --> Out["Response<br/>(risk_score + signals)"]
 ```
 
 #### Typical Signals (examples)
