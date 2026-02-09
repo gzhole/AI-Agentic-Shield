@@ -1,119 +1,61 @@
-#!/usr/bin/env zsh
-# AgentShield Shell Wrapper
-# Source this file in your .zshrc to route all commands through AgentShield.
+#!/bin/sh
+# AgentShield Wrapper Shell
+# ─────────────────────────────────────────────────────────────────────────
+# This script acts as a shell replacement for IDE AI agents.
+# Configure your IDE to use this as the agent's shell command.
+# It intercepts every command, evaluates it against AgentShield policy,
+# and only executes if allowed.
 #
-# Usage:
-#   echo 'source /usr/local/share/agentshield/agentshield-wrapper.sh' >> ~/.zshrc
+# How IDEs use it:
+#   Shell path: /opt/homebrew/share/agentshield/agentshield-wrapper.sh
+#   (or wherever `brew --prefix`/share/agentshield/ lives)
 #
-# To disable temporarily:
-#   export AGENTSHIELD_BYPASS=1
+#   The IDE calls: wrapper.sh -c "rm -rf /tmp/foo && echo done"
+#   AgentShield evaluates "rm -rf /tmp/foo && echo done" against policy.
+#   If ALLOW/AUDIT: executes via sh -c. If BLOCK: exits 1 with explanation.
 #
-# To re-enable:
-#   unset AGENTSHIELD_BYPASS
+# To disable temporarily, set: AGENTSHIELD_BYPASS=1
+# ─────────────────────────────────────────────────────────────────────────
 
-# Avoid double-loading
-if [[ -n "$AGENTSHIELD_LOADED" ]]; then
-  return 0
-fi
-export AGENTSHIELD_LOADED=1
-
-# Path to the agentshield binary
+# Locate the agentshield binary
 AGENTSHIELD_BIN="${AGENTSHIELD_BIN:-$(command -v agentshield 2>/dev/null)}"
 
-if [[ -z "$AGENTSHIELD_BIN" ]]; then
-  echo "[AgentShield] WARNING: agentshield binary not found in PATH. Wrapper disabled." >&2
-  return 1
+# Fallback: if agentshield is not in PATH, try common Homebrew locations
+if [ -z "$AGENTSHIELD_BIN" ]; then
+  for candidate in /opt/homebrew/bin/agentshield /usr/local/bin/agentshield; do
+    if [ -x "$candidate" ]; then
+      AGENTSHIELD_BIN="$candidate"
+      break
+    fi
+  done
 fi
 
-# Commands to never intercept (AgentShield itself, shell builtins, etc.)
-_agentshield_skip_list=(
-  agentshield
-  cd
-  exit
-  source
-  export
-  unset
-  alias
-  unalias
-  history
-  bg
-  fg
-  jobs
-  kill
-  wait
-  eval
-  exec
-  trap
-)
+# If still not found, fall through to plain shell execution
+if [ -z "$AGENTSHIELD_BIN" ]; then
+  echo "[AgentShield] WARNING: agentshield binary not found. Running unprotected." >&2
+  exec /bin/sh "$@"
+fi
 
-# Check if a command should be skipped
-_agentshield_should_skip() {
-  local cmd_name="$1"
+# Handle the -c flag (how IDEs invoke shell commands)
+if [ "$1" = "-c" ]; then
+  shift
+  full_cmd="$*"
+
+  # Skip empty commands
+  [ -z "$full_cmd" ] && exit 0
 
   # Bypass mode
-  [[ -n "$AGENTSHIELD_BYPASS" ]] && return 0
-
-  # Skip shell builtins and agentshield itself
-  for skip in "${_agentshield_skip_list[@]}"; do
-    [[ "$cmd_name" == "$skip" ]] && return 0
-  done
-
-  return 1
-}
-
-# The preexec hook — runs before every command
-_agentshield_preexec() {
-  local full_cmd="$1"
-
-  # Extract the first word (command name)
-  local cmd_name="${full_cmd%% *}"
-
-  # Skip if in the skip list
-  if _agentshield_should_skip "$cmd_name"; then
-    return 0
+  if [ -n "$AGENTSHIELD_BYPASS" ]; then
+    exec /bin/sh -c "$full_cmd"
   fi
 
-  # Route through AgentShield
-  # We use AGENTSHIELD_INTERCEPTED to prevent recursion
-  if [[ -z "$AGENTSHIELD_INTERCEPTED" ]]; then
-    export AGENTSHIELD_INTERCEPTED=1
-    # Run through agentshield instead
-    eval "$AGENTSHIELD_BIN run -- $full_cmd"
-    local exit_code=$?
-    unset AGENTSHIELD_INTERCEPTED
-    # Return non-zero to prevent zsh from running the original command
-    # This works because we use the 'preexec' approach with a custom wrapper
-    return $exit_code
-  fi
-}
-
-# For zsh: use the preexec hook array
-if [[ -n "$ZSH_VERSION" ]]; then
-  autoload -Uz add-zsh-hook
-  # Instead of preexec (which can't cancel commands), we override the
-  # command execution by wrapping it in a function
-  agentshield_exec() {
-    local full_cmd="$*"
-    local cmd_name="${full_cmd%% *}"
-
-    if _agentshield_should_skip "$cmd_name"; then
-      command $@
-      return $?
-    fi
-
-    if [[ -n "$AGENTSHIELD_INTERCEPTED" ]]; then
-      command $@
-      return $?
-    fi
-
-    export AGENTSHIELD_INTERCEPTED=1
-    "$AGENTSHIELD_BIN" run -- $@
-    local exit_code=$?
-    unset AGENTSHIELD_INTERCEPTED
-    return $exit_code
-  }
-
-  echo "[AgentShield] Wrapper loaded. All commands will be audited." >&2
-  echo "[AgentShield] Set AGENTSHIELD_BYPASS=1 to disable." >&2
-  echo "[AgentShield] Use 'agentshield log' to view audit trail." >&2
+  # Route through AgentShield with --shell flag.
+  # --shell ensures the policy engine evaluates the raw command string
+  # (e.g. "rm -rf /") rather than "sh -c rm -rf /".
+  # AgentShield handles execution via sh -c internally.
+  "$AGENTSHIELD_BIN" run --shell -- "$full_cmd"
+  exit $?
 fi
+
+# For any other invocation (interactive, -i, etc.), fall through to real shell
+exec /bin/sh "$@"

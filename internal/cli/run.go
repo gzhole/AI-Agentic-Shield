@@ -15,19 +15,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var shellMode bool
+
 var runCmd = &cobra.Command{
 	Use:   "run [flags] -- <command> [args...]",
 	Short: "Run a command through AgentShield",
 	Long: `Run a command through AgentShield's policy enforcement layer.
 The command and its arguments should be provided after --.
 
-Example:
+Examples:
   agentshield run -- echo "hello world"
-  agentshield run --policy ./custom.yaml -- npm install lodash`,
+  agentshield run --policy ./custom.yaml -- npm install lodash
+  agentshield run --shell -- "echo hello | grep hello"`,
 	RunE: runCommand,
 }
 
 func init() {
+	runCmd.Flags().BoolVar(&shellMode, "shell", false, "Treat args as a shell command string (handles pipes, redirects, etc.)")
 	rootCmd.AddCommand(runCmd)
 }
 
@@ -52,6 +56,8 @@ func runCommand(cmd *cobra.Command, args []string) error {
 		cwd = "unknown"
 	}
 
+	// In shell mode, join all args into one command string for evaluation.
+	// The raw command is what the policy engine sees.
 	cmdStr := strings.Join(args, " ")
 
 	// Normalize command
@@ -106,7 +112,12 @@ func runCommand(cmd *cobra.Command, args []string) error {
 			event.Flagged = true
 		}
 
-		execCmd := exec.Command(args[0], args[1:]...)
+		var execCmd *exec.Cmd
+		if shellMode {
+			execCmd = exec.Command("sh", "-c", cmdStr)
+		} else {
+			execCmd = exec.Command(args[0], args[1:]...)
+		}
 		execCmd.Stdin = os.Stdin
 		execCmd.Stdout = os.Stdout
 		execCmd.Stderr = os.Stderr
