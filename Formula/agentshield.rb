@@ -1,8 +1,8 @@
 class Agentshield < Formula
   desc "Local-first runtime security gateway for AI agents"
   homepage "https://github.com/gzhole/Agentic-gateway"
-  url "https://github.com/gzhole/Agentic-gateway/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_RELEASE"
+  url "https://github.com/gzhole/Agentic-gateway/archive/v0.1.0.tar.gz"
+  sha256 "bf6264071a1ebe4103ef9dc3bc234a91ce1f4ebabe2b8cf72ce80adc642a433b"
   license "Apache-2.0"
 
   depends_on "go" => :build
