@@ -34,6 +34,17 @@ runs is evaluated by AgentShield before execution.
 	RunE: setupCursorCommand,
 }
 
+var setupOpenClawCmd = &cobra.Command{
+	Use:   "openclaw",
+	Short: "Set up AgentShield for OpenClaw gateway",
+	Long: `Install an OpenClaw hook that routes every agent exec call through
+AgentShield's 6-layer security pipeline.
+
+  agentshield setup openclaw             # install hook
+  agentshield setup openclaw --disable   # remove hook`,
+	RunE: setupOpenClawCommand,
+}
+
 var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Set up AgentShield for your environment",
@@ -44,6 +55,8 @@ IDE-specific setup:
   agentshield setup windsurf --disable    # remove Cascade Hooks
   agentshield setup cursor                # install Cursor Hooks
   agentshield setup cursor --disable      # remove Cursor Hooks
+  agentshield setup openclaw              # install OpenClaw Hook
+  agentshield setup openclaw --disable    # remove OpenClaw Hook
 
 General setup:
   agentshield setup --install   # install wrapper + policy packs
@@ -60,8 +73,10 @@ func init() {
 	setupCmd.Flags().BoolVar(&installFlag, "install", false, "Install wrapper script and default policy packs")
 	setupWindsurfCmd.Flags().BoolVar(&disableFlag, "disable", false, "Remove AgentShield hooks and disable integration")
 	setupCursorCmd.Flags().BoolVar(&disableFlag, "disable", false, "Remove AgentShield hooks and disable integration")
+	setupOpenClawCmd.Flags().BoolVar(&disableFlag, "disable", false, "Remove AgentShield hooks and disable integration")
 	setupCmd.AddCommand(setupWindsurfCmd)
 	setupCmd.AddCommand(setupCursorCmd)
+	setupCmd.AddCommand(setupOpenClawCmd)
 	rootCmd.AddCommand(setupCmd)
 }
 
@@ -347,6 +362,188 @@ func setupCursorCommand(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// ─── OpenClaw Setup ─────────────────────────────────────────────────────────
+
+func setupOpenClawCommand(cmd *cobra.Command, args []string) error {
+	hookDir := filepath.Join(os.Getenv("HOME"), ".openclaw", "hooks", "agentshield")
+
+	if disableFlag {
+		return disableOpenClawHook(hookDir)
+	}
+
+	fmt.Println("═══════════════════════════════════════════════════════")
+	fmt.Println("  AgentShield + OpenClaw")
+	fmt.Println("═══════════════════════════════════════════════════════")
+	fmt.Println()
+
+	// Check if agentshield is in PATH
+	binPath, err := exec.LookPath("agentshield")
+	if err != nil {
+		fmt.Println("⚠  agentshield not found in PATH. Install it first:")
+		fmt.Println("   brew tap gzhole/tap && brew install agentshield")
+		return nil
+	}
+	fmt.Printf("✅ agentshield found: %s\n", binPath)
+
+	// Check if openclaw is installed
+	clawPath, err := exec.LookPath("openclaw")
+	if err != nil {
+		fmt.Println("⚠  openclaw not found in PATH. Install it first:")
+		fmt.Println("   brew install openclaw")
+		return nil
+	}
+	fmt.Printf("✅ openclaw found: %s\n", clawPath)
+
+	// Check if hook already installed
+	hookMd := filepath.Join(hookDir, "HOOK.md")
+	if _, err := os.Stat(hookMd); err == nil {
+		fmt.Printf("✅ AgentShield hook already installed: %s\n", hookDir)
+		fmt.Println()
+		fmt.Println("Hook is installed. Enable it and restart the gateway:")
+		fmt.Println("  openclaw hooks enable agentshield")
+		fmt.Println()
+		fmt.Println("To disable: agentshield setup openclaw --disable")
+		fmt.Println()
+		printStatus()
+		return nil
+	}
+
+	// Find the hook pack source
+	hookSrc := findOpenClawHookSource()
+	if hookSrc == "" {
+		fmt.Println("⚠  Could not find openclaw-hook source directory.")
+		fmt.Println("   Try installing from the repo:")
+		fmt.Println("   openclaw hooks install /path/to/Agentic-gateway/openclaw-hook")
+		return nil
+	}
+
+	// Copy hook files to ~/.openclaw/hooks/agentshield/
+	if err := os.MkdirAll(hookDir, 0755); err != nil {
+		return fmt.Errorf("failed to create %s: %w", hookDir, err)
+	}
+
+	hookFiles := []string{"HOOK.md", "handler.ts", "AGENTSHIELD.md"}
+	for _, f := range hookFiles {
+		src := filepath.Join(hookSrc, "agentshield", f)
+		dst := filepath.Join(hookDir, f)
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", src, err)
+		}
+		if err := os.WriteFile(dst, data, 0644); err != nil {
+			return fmt.Errorf("failed to write %s: %w", dst, err)
+		}
+	}
+
+	fmt.Printf("✅ Hook installed: %s\n", hookDir)
+	fmt.Println()
+
+	// Try to enable the hook via openclaw CLI
+	enableCmd := exec.Command("openclaw", "hooks", "enable", "agentshield")
+	enableOut, err := enableCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("⚠  Could not auto-enable hook. Enable it manually:")
+		fmt.Println("   openclaw hooks enable agentshield")
+	} else {
+		outStr := strings.TrimSpace(string(enableOut))
+		if outStr != "" {
+			// Print the last meaningful line (skip the OpenClaw banner)
+			lines := strings.Split(outStr, "\n")
+			for i := len(lines) - 1; i >= 0; i-- {
+				line := strings.TrimSpace(lines[i])
+				if line != "" && !strings.HasPrefix(line, "🦞") && !strings.HasPrefix(line, "(node:") {
+					fmt.Printf("✅ %s\n", line)
+					break
+				}
+			}
+		}
+	}
+
+	// Install policy packs
+	cfg, _ := config.Load("", "", "")
+	if cfg != nil {
+		packsDir := filepath.Join(cfg.ConfigDir, "packs")
+		if err := os.MkdirAll(packsDir, 0755); err == nil {
+			packsSrc := findPacksSource()
+			if packsSrc != "" {
+				installed := installPacks(packsSrc, packsDir)
+				if installed > 0 {
+					fmt.Printf("✅ %d policy packs installed to %s\n", installed, packsDir)
+				}
+			}
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("How it works:")
+	fmt.Println("  1. OpenClaw starts a session with the agent")
+	fmt.Println("  2. AgentShield hook injects security instructions (AGENTSHIELD.md)")
+	fmt.Println("  3. Agent wraps all exec calls through `agentshield run --`")
+	fmt.Println("  4. Each command is evaluated by the 6-layer security pipeline")
+	fmt.Println("  5. Dangerous commands are blocked before execution")
+	fmt.Println()
+	fmt.Println("Restart the OpenClaw gateway to activate the hook.")
+	fmt.Println()
+	fmt.Println("To disable: agentshield setup openclaw --disable")
+	fmt.Println()
+	printStatus()
+	return nil
+}
+
+func disableOpenClawHook(hookDir string) error {
+	hookMd := filepath.Join(hookDir, "HOOK.md")
+	if _, err := os.Stat(hookMd); os.IsNotExist(err) {
+		fmt.Println("ℹ  No AgentShield hook found for OpenClaw — nothing to disable.")
+		return nil
+	}
+
+	// Try to disable via openclaw CLI first
+	disCmd := exec.Command("openclaw", "hooks", "disable", "agentshield")
+	disCmd.Run() // ignore errors — hook dir removal is the real action
+
+	// Remove the hook directory
+	backupDir := hookDir + ".bak"
+	if err := os.Rename(hookDir, backupDir); err != nil {
+		return fmt.Errorf("failed to remove hook: %w", err)
+	}
+
+	fmt.Println("✅ AgentShield hook disabled for OpenClaw")
+	fmt.Printf("   Backup saved: %s\n", backupDir)
+	fmt.Println()
+	fmt.Println("Restart the OpenClaw gateway to apply.")
+	fmt.Println("Re-enable anytime with: agentshield setup openclaw")
+	return nil
+}
+
+// findOpenClawHookSource looks for the openclaw-hook directory in known locations.
+func findOpenClawHookSource() string {
+	candidates := []string{
+		filepath.Join(getShareDir(), "openclaw-hook"),
+	}
+
+	// Check relative to binary
+	if binPath, err := exec.LookPath("agentshield"); err == nil {
+		binDir := filepath.Dir(binPath)
+		candidates = append(candidates,
+			filepath.Join(binDir, "..", "share", "agentshield", "openclaw-hook"),
+			filepath.Join(binDir, "..", "openclaw-hook"),
+		)
+	}
+
+	// Check current working directory (for dev)
+	if cwd, err := os.Getwd(); err == nil {
+		candidates = append(candidates, filepath.Join(cwd, "openclaw-hook"))
+	}
+
+	for _, c := range candidates {
+		hookMd := filepath.Join(c, "agentshield", "HOOK.md")
+		if _, err := os.Stat(hookMd); err == nil {
+			return c
+		}
+	}
+	return ""
+}
+
 // ─── Generic Setup Instructions ─────────────────────────────────────────────
 
 func printSetupInstructions() {
@@ -381,6 +578,14 @@ func printSetupInstructions() {
 	fmt.Println("  One command to install:")
 	fmt.Println()
 	fmt.Println("    agentshield setup cursor")
+	fmt.Println()
+
+	fmt.Println("─── OpenClaw ──────────────────────────────────────────")
+	fmt.Println()
+	fmt.Println("  Uses native OpenClaw Hooks (agent:bootstrap).")
+	fmt.Println("  One command to install:")
+	fmt.Println()
+	fmt.Println("    agentshield setup openclaw")
 	fmt.Println()
 
 	fmt.Println("─── Claude Code ───────────────────────────────────────")

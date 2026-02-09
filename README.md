@@ -31,6 +31,7 @@ curl -sSL https://raw.githubusercontent.com/gzhole/LLM-Agentic-Shield/main/scrip
 # Set up IDE hooks (one command)
 agentshield setup windsurf   # Windsurf (Cascade Hooks)
 agentshield setup cursor     # Cursor (Cursor Hooks)
+agentshield setup openclaw   # OpenClaw (Agent Bootstrap Hook)
 
 # Or view all options
 agentshield setup
@@ -72,10 +73,11 @@ drwxr-xr-x  12 user  staff  384 ...    # executes normally
 
 ## IDE Integration
 
-| IDE | Hook System | Setup | How it blocks |
-|-----|-------------|-------|---------------|
+| IDE / Agent | Hook System | Setup | How it blocks |
+|-------------|-------------|-------|---------------|
 | **Windsurf** | Cascade Hooks (`pre_run_command`) | `agentshield setup windsurf` | Exit code 2 |
 | **Cursor** | Cursor Hooks (`beforeShellExecution`) | `agentshield setup cursor` | JSON `permission: deny` |
+| **OpenClaw** | Agent Bootstrap Hook (`agent:bootstrap`) | `agentshield setup openclaw` | Exit code 1 via `agentshield run` |
 | **Claude Code** | Shell wrapper | `agentshield setup --install` | Exit code 1 |
 | **LangChain / Custom** | CLI wrapping | `agentshield run -- <cmd>` | Exit code 1 |
 
@@ -85,10 +87,12 @@ drwxr-xr-x  12 user  staff  384 ...    # executes normally
 # Remove hooks (permanent until re-enabled):
 agentshield setup windsurf --disable
 agentshield setup cursor   --disable
+agentshield setup openclaw --disable
 
 # Re-enable:
 agentshield setup windsurf
 agentshield setup cursor
+agentshield setup openclaw
 
 # Quick session bypass (without removing hooks):
 export AGENTSHIELD_BYPASS=1    # disable
