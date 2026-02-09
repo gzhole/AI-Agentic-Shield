@@ -150,7 +150,7 @@ make build
 sudo make install
 
 # Or curl installer
-curl -sSL https://raw.githubusercontent.com/gzhole/agentshield/main/scripts/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/gzhole/Agentic-gateway/main/scripts/install.sh | bash
 ```
 
 ## Quick Start

@@ -4,7 +4,7 @@ set -euo pipefail
 # AgentShield Installer
 # Usage: curl -sSL https://raw.githubusercontent.com/gzhole/agentshield/main/scripts/install.sh | bash
 
-REPO="gzhole/agentshield"
+REPO="gzhole/Agentic-gateway"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 BINARY="agentshield"
 
