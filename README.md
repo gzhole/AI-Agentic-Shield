@@ -155,16 +155,25 @@ done
 export PATH="$INTERCEPT_DIR:$PATH"
 ```
 
-### Bypass Mode
-
-To temporarily disable AgentShield (e.g. for debugging):
+### Disable / Re-enable
 
 ```bash
-# Temporarily disable
-export AGENTSHIELD_BYPASS=1
+# Remove hooks entirely (permanent until re-enabled):
+agentshield setup windsurf --disable
+agentshield setup cursor   --disable
 
-# Re-enable
-unset AGENTSHIELD_BYPASS
+# Re-enable with one command:
+agentshield setup windsurf
+agentshield setup cursor
+```
+
+A backup of your hooks.json is saved automatically (`.bak`). Restart the IDE after enabling or disabling.
+
+For a **quick session bypass** without removing hooks:
+
+```bash
+export AGENTSHIELD_BYPASS=1    # temporarily disable (all hooks pass through)
+unset AGENTSHIELD_BYPASS       # re-enable
 ```
 
 ## Install
