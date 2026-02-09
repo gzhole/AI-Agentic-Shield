@@ -66,21 +66,25 @@ The recommended deployment: **put AgentShield in the agent's execution path only
 
 ### Method 1: Shell Wrapper (Recommended for IDE Agents)
 
-Most AI coding agents (Windsurf, Claude Code, Cursor, etc.) spawn a shell to execute commands. Configure the agent to use AgentShield's wrapper shell:
+Most AI coding agents (Windsurf, Claude Code, Cursor, etc.) spawn a shell to execute commands. AgentShield ships a wrapper script that acts as a shell replacement — every command the agent runs is evaluated against your policy before execution.
 
 ```bash
-# Install the wrapper
-sudo cp scripts/agentshield-wrapper.sh /usr/local/share/agentshield/
+# After brew install, run setup to install wrapper + policy packs:
+agentshield setup --install
 
-# Configure your IDE agent to use this as its shell:
-#   Shell path: /bin/zsh
-#   Shell args: -c "source /usr/local/share/agentshield/agentshield-wrapper.sh && eval \"$@\""
-#
-# Or set the agent's shell environment variable (agent-specific):
-export AGENT_SHELL="source /usr/local/share/agentshield/agentshield-wrapper.sh"
+# View integration instructions:
+agentshield setup
 ```
 
-When the wrapper is loaded, every command the agent runs is routed through `agentshield run --` automatically. The wrapper skips shell builtins (`cd`, `export`, etc.) to avoid breaking normal shell behavior.
+The wrapper is installed to `$(brew --prefix)/share/agentshield/agentshield-wrapper.sh`. Configure your IDE agent to use it:
+
+| IDE / Agent | Setting |
+|---|---|
+| **Windsurf** | Settings → Agent → Shell path: `/opt/homebrew/share/agentshield/agentshield-wrapper.sh` |
+| **Claude Code** | `"shell": "/opt/homebrew/share/agentshield/agentshield-wrapper.sh"` |
+| **Cursor** | Settings → Terminal → Shell path |
+
+The wrapper intercepts `shell -c "command"` invocations, evaluates the raw command string against the full policy pipeline, and only executes if allowed.
 
 ### Method 2: Direct CLI Wrapping (For Agent Frameworks)
 
