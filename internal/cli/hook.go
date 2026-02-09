@@ -67,6 +67,17 @@ func init() {
 }
 
 func hookCommand(cmd *cobra.Command, args []string) error {
+	// Check bypass — allow everything when disabled
+	if os.Getenv("AGENTSHIELD_BYPASS") == "1" {
+		// Still need to consume stdin and respond correctly for Cursor format
+		data, _ := io.ReadAll(os.Stdin)
+		var input hookInput
+		if err := json.Unmarshal(data, &input); err == nil && input.Command != "" {
+			outputCursorAllow()
+		}
+		return nil
+	}
+
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read stdin: %w", err)

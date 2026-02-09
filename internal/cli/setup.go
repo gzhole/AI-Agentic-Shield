@@ -15,20 +15,22 @@ import (
 var setupWindsurfCmd = &cobra.Command{
 	Use:   "windsurf",
 	Short: "Set up AgentShield for Windsurf IDE",
-	Long: `Install Cascade Hooks so every command Windsurf's AI agent runs is
-evaluated by AgentShield before execution.
+	Long: `Install or remove Cascade Hooks so every command Windsurf's AI agent
+runs is evaluated by AgentShield before execution.
 
-  agentshield setup windsurf`,
+  agentshield setup windsurf             # enable hooks
+  agentshield setup windsurf --disable   # disable hooks`,
 	RunE: setupWindsurfCommand,
 }
 
 var setupCursorCmd = &cobra.Command{
 	Use:   "cursor",
 	Short: "Set up AgentShield for Cursor IDE",
-	Long: `Show instructions to configure Cursor's terminal profile to use
-AgentShield's wrapper shell.
+	Long: `Install or remove Cursor Hooks so every command Cursor's AI agent
+runs is evaluated by AgentShield before execution.
 
-  agentshield setup cursor`,
+  agentshield setup cursor             # enable hooks
+  agentshield setup cursor --disable   # disable hooks`,
 	RunE: setupCursorCommand,
 }
 
@@ -38,8 +40,10 @@ var setupCmd = &cobra.Command{
 	Long: `Set up AgentShield integration with IDE agents and install default policy packs.
 
 IDE-specific setup:
-  agentshield setup windsurf    # install Cascade Hooks (recommended)
-  agentshield setup cursor      # show terminal profile config
+  agentshield setup windsurf              # install Cascade Hooks
+  agentshield setup windsurf --disable    # remove Cascade Hooks
+  agentshield setup cursor                # install Cursor Hooks
+  agentshield setup cursor --disable      # remove Cursor Hooks
 
 General setup:
   agentshield setup --install   # install wrapper + policy packs
@@ -47,10 +51,15 @@ General setup:
 	RunE: setupCommand,
 }
 
-var installFlag bool
+var (
+	installFlag bool
+	disableFlag bool
+)
 
 func init() {
 	setupCmd.Flags().BoolVar(&installFlag, "install", false, "Install wrapper script and default policy packs")
+	setupWindsurfCmd.Flags().BoolVar(&disableFlag, "disable", false, "Remove AgentShield hooks and disable integration")
+	setupCursorCmd.Flags().BoolVar(&disableFlag, "disable", false, "Remove AgentShield hooks and disable integration")
 	setupCmd.AddCommand(setupWindsurfCmd)
 	setupCmd.AddCommand(setupCursorCmd)
 	rootCmd.AddCommand(setupCmd)
@@ -123,11 +132,48 @@ func runSetupInstall() error {
 	return nil
 }
 
+// ─── Shared Disable Logic ────────────────────────────────────────────────────
+
+func disableHook(hooksPath, ideName string) error {
+	backupPath := hooksPath + ".bak"
+
+	if _, err := os.Stat(hooksPath); os.IsNotExist(err) {
+		fmt.Printf("ℹ  No hooks.json found for %s — nothing to disable.\n", ideName)
+		return nil
+	}
+
+	data, err := os.ReadFile(hooksPath)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", hooksPath, err)
+	}
+
+	if !strings.Contains(string(data), "agentshield hook") {
+		fmt.Printf("ℹ  %s hooks.json does not contain AgentShield — nothing to disable.\n", ideName)
+		return nil
+	}
+
+	// Back up then remove
+	if err := os.Rename(hooksPath, backupPath); err != nil {
+		return fmt.Errorf("failed to rename %s: %w", hooksPath, err)
+	}
+
+	fmt.Printf("✅ AgentShield hook disabled for %s\n", ideName)
+	fmt.Printf("   Backup saved: %s\n", backupPath)
+	fmt.Println()
+	fmt.Printf("Restart %s to apply. Re-enable anytime with:\n", ideName)
+	fmt.Printf("  agentshield setup %s\n", strings.ToLower(ideName))
+	return nil
+}
+
 // ─── Windsurf Setup ─────────────────────────────────────────────────────────
 
 func setupWindsurfCommand(cmd *cobra.Command, args []string) error {
 	hooksPath := filepath.Join(os.Getenv("HOME"), ".codeium", "windsurf", "hooks.json")
 	hooksDir := filepath.Dir(hooksPath)
+
+	if disableFlag {
+		return disableHook(hooksPath, "Windsurf")
+	}
 
 	fmt.Println("═══════════════════════════════════════════════════════")
 	fmt.Println("  AgentShield + Windsurf (Cascade Hooks)")
@@ -153,6 +199,8 @@ func setupWindsurfCommand(cmd *cobra.Command, args []string) error {
 			fmt.Println("AgentShield is active. Test it by asking Cascade to run:")
 			fmt.Println("  rm -rf /")
 			fmt.Println("  cat ~/.ssh/id_ed25519")
+			fmt.Println()
+			fmt.Println("To disable: agentshield setup windsurf --disable")
 			fmt.Println()
 			printStatus()
 			return nil
@@ -200,6 +248,8 @@ func setupWindsurfCommand(cmd *cobra.Command, args []string) error {
 	fmt.Println("  4. If BLOCK: Cascade is prevented from running the command")
 	fmt.Println("  5. If ALLOW/AUDIT: the command runs normally")
 	fmt.Println()
+	fmt.Println("To disable: agentshield setup windsurf --disable")
+	fmt.Println()
 	fmt.Println("Restart Windsurf to activate the hook, then test by asking")
 	fmt.Println("Cascade to run: rm -rf /")
 	fmt.Println()
@@ -212,6 +262,10 @@ func setupWindsurfCommand(cmd *cobra.Command, args []string) error {
 func setupCursorCommand(cmd *cobra.Command, args []string) error {
 	hooksPath := filepath.Join(os.Getenv("HOME"), ".cursor", "hooks.json")
 	hooksDir := filepath.Dir(hooksPath)
+
+	if disableFlag {
+		return disableHook(hooksPath, "Cursor")
+	}
 
 	fmt.Println("═══════════════════════════════════════════════════════")
 	fmt.Println("  AgentShield + Cursor (Hooks)")
@@ -236,6 +290,8 @@ func setupCursorCommand(cmd *cobra.Command, args []string) error {
 			fmt.Println("AgentShield is active. Test by asking Agent to run:")
 			fmt.Println("  rm -rf /")
 			fmt.Println("  cat ~/.ssh/id_ed25519")
+			fmt.Println()
+			fmt.Println("To disable: agentshield setup cursor --disable")
 			fmt.Println()
 			printStatus()
 			return nil
@@ -281,6 +337,8 @@ func setupCursorCommand(cmd *cobra.Command, args []string) error {
 	fmt.Println("  3. AgentShield evaluates the command against your policy")
 	fmt.Println("  4. If BLOCK: Agent is prevented from running the command")
 	fmt.Println("  5. If ALLOW/AUDIT: the command runs normally")
+	fmt.Println()
+	fmt.Println("To disable: agentshield setup cursor --disable")
 	fmt.Println()
 	fmt.Println("Restart Cursor to activate the hook, then test by asking")
 	fmt.Println("Agent to run: rm -rf /")
@@ -342,8 +400,13 @@ func printSetupInstructions() {
 	fmt.Println("  agentshield pack list                # show policy packs")
 	fmt.Println()
 
-	fmt.Println("─── Bypass Mode ──────────────────────────────────────")
+	fmt.Println("─── Disable / Re-enable ──────────────────────────────")
 	fmt.Println()
+	fmt.Println("  # Remove hooks (permanent until re-enabled):")
+	fmt.Println("  agentshield setup windsurf --disable")
+	fmt.Println("  agentshield setup cursor   --disable")
+	fmt.Println()
+	fmt.Println("  # Quick bypass (env var, current session only):")
 	fmt.Println("  export AGENTSHIELD_BYPASS=1    # temporarily disable")
 	fmt.Println("  unset AGENTSHIELD_BYPASS       # re-enable")
 	fmt.Println()
