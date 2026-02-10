@@ -49,7 +49,9 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize audit logger: %w", err)
 	}
-	defer auditLogger.Close()
+	defer func() {
+		_ = auditLogger.Close()
+	}()
 
 	cwd, err := os.Getwd()
 	if err != nil {

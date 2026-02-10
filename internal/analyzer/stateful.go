@@ -84,7 +84,7 @@ func (s *StatefulAnalyzer) checkCompoundDownloadExecute(ctx *AnalysisContext) []
 
 	// Look for download segments
 	var downloadedFiles []string
-	var downloadSegIdx int = -1
+	var downloadSegIdx = -1
 
 	for i, seg := range parsed.Segments {
 		if !isDownloadCommand(seg.Executable) {

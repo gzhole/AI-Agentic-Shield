@@ -15,7 +15,9 @@ func TestAuditLogger_Log(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
-	defer logger.Close()
+	defer func() {
+		_ = logger.Close()
+	}()
 
 	event := AuditEvent{
 		Timestamp:      "2026-02-02T12:00:00Z",
@@ -31,7 +33,7 @@ func TestAuditLogger_Log(t *testing.T) {
 		t.Fatalf("failed to log event: %v", err)
 	}
 
-	logger.Close()
+	_ = logger.Close()
 
 	data, err := os.ReadFile(logPath)
 	if err != nil {
@@ -60,7 +62,7 @@ func TestAuditLogger_FilePermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create logger: %v", err)
 	}
-	logger.Close()
+	_ = logger.Close()
 
 	info, err := os.Stat(logPath)
 	if err != nil {

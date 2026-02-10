@@ -121,7 +121,9 @@ func evaluateCommand(cmdStr, cwd, source string) (*policy.EvalResult, *logger.Au
 	if err != nil {
 		return nil, nil, fmt.Errorf("logger init failed: %w", err)
 	}
-	defer auditLogger.Close()
+	defer func() {
+		_ = auditLogger.Close()
+	}()
 
 	cmdArgs := strings.Fields(cmdStr)
 	normalized := normalize.Normalize(cmdArgs, cwd)

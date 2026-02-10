@@ -83,7 +83,9 @@ func readAuditLog(path string) ([]logger.AuditEvent, error) {
 		}
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	var events []logger.AuditEvent
 	scanner := bufio.NewScanner(file)
@@ -206,9 +208,9 @@ func decisionIcon(decision string) string {
 	case "AUDIT":
 		return "\xf0\x9f\x94\x8d" // magnifying glass
 	case "ALLOW":
-		return "\xe2\x9c\x85"     // check mark
+		return "\xe2\x9c\x85" // check mark
 	default:
-		return "\xe2\x9d\x93"     // question mark
+		return "\xe2\x9d\x93" // question mark
 	}
 }
 
