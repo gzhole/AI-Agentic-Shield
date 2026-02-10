@@ -547,17 +547,19 @@ func (c *pipeToDangerousTargetCheck) Check(parsed *ParsedCommand, raw string) []
 func wordToString(word *syntax.Word) string {
 	var sb strings.Builder
 	printer := syntax.NewPrinter()
-	printer.Print(&sb, word)
+	if err := printer.Print(&sb, word); err != nil {
+		return "" // fallback on error
+	}
 	return sb.String()
 }
 
 func redirectOpString(redir *syntax.Redirect) string {
-	switch {
-	case redir.Op == syntax.RdrOut:
+	switch redir.Op {
+	case syntax.RdrOut:
 		return ">"
-	case redir.Op == syntax.AppOut:
+	case syntax.AppOut:
 		return ">>"
-	case redir.Op == syntax.RdrIn:
+	case syntax.RdrIn:
 		return "<"
 	default:
 		return redir.Op.String()

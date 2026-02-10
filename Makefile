@@ -1,4 +1,4 @@
-.PHONY: build test lint clean install run help
+.PHONY: build test lint clean install run help setup-hooks lint-fix
 
 VERSION ?= 0.1.0-dev
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -36,3 +36,14 @@ run: build ## Build and run with args (usage: make run ARGS="run -- echo hi")
 deps: ## Download dependencies
 	go mod download
 	go mod tidy
+
+setup-hooks: ## Set up pre-commit hooks
+	@echo "🔧 Setting up pre-commit hooks..."
+	@chmod +x .git/hooks/pre-commit
+	@echo "✅ Pre-commit hooks installed!"
+
+lint-fix: ## Run linter with auto-fix
+	@echo "🔧 Running linter with auto-fix..."
+	golangci-lint run --fix
+
+check: lint-fix test build ## Run full pre-commit check (lint, test, build)
