@@ -179,8 +179,12 @@ rules:
     decision: "BLOCK"
     reason: "Pack B rule 2"
 `
-	os.WriteFile(filepath.Join(dir, "a-pack.yaml"), []byte(pack1), 0644)
-	os.WriteFile(filepath.Join(dir, "b-pack.yaml"), []byte(pack2), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "a-pack.yaml"), []byte(pack1), 0644); err != nil {
+		t.Fatalf("Failed to write a-pack.yaml: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "b-pack.yaml"), []byte(pack2), 0644); err != nil {
+		t.Fatalf("Failed to write b-pack.yaml: %v", err)
+	}
 
 	result, infos, err := LoadPacks(dir, base)
 	if err != nil {
