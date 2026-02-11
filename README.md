@@ -1,26 +1,14 @@
-# LLM Agentic Shield
+# AgentShield
 
-**Local-first runtime security gateway for LLM agents** — Block dangerous commands before they execute.
+**Local-first runtime security gateway for LLM coding agents.**
 
-AI coding agents (OpenClaw, Windsurf, Cursor, Claude Code, etc.) run shell commands with real side effects.
-AgentShield sits between the agent and the OS — enforcing deterministic policies, blocking threats, and logging every action.
+AI coding agents (Windsurf, Cursor, Claude Code, OpenClaw, etc.) execute shell commands with the developer's full permissions — access to `~/.ssh`, `~/.aws`, environment variables, and the entire filesystem. There is no enforcement layer between the LLM's decision and the operating system.
 
-## Screenshots
+AgentShield is a deterministic policy gate that sits between the agent and the OS. Every shell command is evaluated through a 6-layer analyzer pipeline *before* execution. Dangerous commands are blocked. Safe commands pass through. Everything is logged.
 
-<table>
-  <tr>
-    <td width="50%">
-      <img src="docs/images/openclaw-hook-setup.png" alt="AgentShield enabled in OpenClaw" />
-      <br>
-      <em>AgentShield enabled in OpenClaw</em>
-    </td>
-    <td width="50%">
-      <img src="docs/images/windsurf-hook-blocked.png" alt="AgentShield blocking a command in Windsurf" />
-      <br>
-      <em>AgentShield blocking a command in Windsurf</em>
-    </td>
-  </tr>
-</table>
+This project is one attempt at the "complete mediation" pattern [recommended by OWASP](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/) for mitigating Excessive Agency (LLM06) in LLM applications.
+
+> **📝 Blog post:** [AI Agents Have Root Access to Your Machine — And Nobody's Watching](https://medium.com/@gzxuexi/ai-agents-have-root-access-to-your-machine-and-nobodys-watching-9965606176a4) — background research, real-world incidents, and OWASP alignment.
 
 ## Install
 
@@ -162,11 +150,40 @@ See the **[Policy Authoring Guide](docs/policy-guide.md)** for full rule syntax,
 - **Automatic secret redaction** in audit logs
 - **Fail-safe defaults** — unknown commands → AUDIT, not ALLOW
 
+## Known Limitations
+
+AgentShield is a **user-space command wrapper**, not a kernel-level enforcement mechanism. Be aware of these boundaries:
+
+| Limitation | Detail |
+|-----------|--------|
+| **Agent can disable hooks** | An agent with shell access could run `agentshield setup --disable` or `export AGENTSHIELD_BYPASS=1`. The hook files live in user-writable IDE config directories. |
+| **Agent can tamper with audit logs** | `~/.agentshield/audit.jsonl` is a local file. An agent could delete or truncate it. |
+| **Agent can modify policy files** | Policy packs in `~/.agentshield/packs/` are user-writable YAML. |
+| **Only intercepts routed commands** | Commands not routed through `agentshield run --` are not intercepted. If an agent bypasses the wrapper (e.g., direct syscall, spawning a child process outside the hook), AgentShield won't see it. |
+| **Not a network firewall** | AgentShield analyzes command strings. It does not inspect network packets or block outbound connections at the OS level. |
+| **Not an LLM guardrail** | AgentShield does not filter prompts sent to models or inspect model outputs. It operates at the shell command layer only. |
+
+These limitations are inherent to the user-space wrapper approach. Mitigations include running audit log forwarding to a remote store, setting file permissions on policy files, and combining AgentShield with OS-level controls (e.g., macOS TCC, SELinux, network firewalls).
+
+## Roadmap
+
+AgentShield currently mediates **shell commands**. The threat surface for AI agents is broader. Planned and exploratory directions:
+
+- **MCP communication mediation** — Intercept and evaluate [Model Context Protocol](https://modelcontextprotocol.io/) tool calls between agents and MCP servers. MCP is becoming the standard for agent-to-tool communication, and [unsecured MCP servers are already a real risk](https://www.darkreading.com/vulnerabilities-threats/2000-mcp-servers-security).
+- **File-write policy** — Evaluate file creation and modification operations (not just shell commands), especially writes to sensitive config files (`.cursor/mcp.json`, `.vscode/tasks.json`, crontabs).
+- **Remote audit log forwarding** — Ship `audit.jsonl` to a remote store (syslog, S3, SIEM) so agents cannot tamper with the trail.
+- **OS-level enforcement** — Explore eBPF-based or sandbox-based approaches for commands that bypass the wrapper.
+- **Policy-as-code CI integration** — Validate policy packs in CI pipelines, share them across teams via git.
+- **Agent identity tagging** — Distinguish which agent (Windsurf, Cursor, OpenClaw) initiated a command for per-agent policy and audit.
+
+Contributions and ideas are welcome — [open an issue](https://github.com/gzhole/LLM-Agentic-Shield/issues) or submit a PR.
+
 ## Documentation
 
 - [Policy Authoring Guide](docs/policy-guide.md) — Rule syntax, analyzer layers, custom packs, recipes
 - [Architecture & Pipeline Details](docs/architecture.md)
 - [Accuracy Baseline & Red-Team Results](docs/accuracy.md)
+- [OWASP LLM Top 10 Compliance Mapping](compliance/indexes/owasp-llm-2025.md)
 
 ## Development
 
