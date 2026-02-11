@@ -4,7 +4,7 @@ package analyzer
 // rule from YAML. It matches multi-step attack chains within compound commands
 // by checking segment sequences connected by operators.
 //
-// Inspired by Fortify's control flow rules, adapted for shell command chains:
+// Inspired by classical control flow analysis, adapted for shell command chains:
 //   - Chain steps match against command segments (executable, flags, args)
 //   - Operators (&&, ||, ;, |) connect steps and must match
 //   - The chain is matched as a subsequence (steps can be non-adjacent)

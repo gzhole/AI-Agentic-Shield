@@ -1,7 +1,7 @@
 # Design: Data-Driven Rule System
 
 > **Status:** Phase 1 (Structural) — In Progress  
-> **Inspired by:** Fortify SCA Custom Rules Guide, Semgrep pattern matching  
+> **Inspired by:** Traditional SAST rule engines, Semgrep pattern matching  
 > **Innovation:** Shell-command-native analysis (pipes, redirects, operators) — not source code
 
 ## Problem
@@ -18,7 +18,7 @@ Today, users can only write **regex rules** in YAML. Layers 2–6 are hardcoded 
 | Guardian | ❌ Go only | Prompt injection signals |
 
 Regex is brittle: `rm -rf /` vs `rm --recursive --force /` vs `sudo rm -f -r /` require
-increasingly complex patterns. In Fortify, regex is used only for secret/content detection.
+increasingly complex patterns. In traditional SAST tools, regex is used only for secret/content detection.
 Most rules are structural, dataflow, or semantic — more robust and easier to write.
 
 ## Target Architecture
@@ -45,9 +45,9 @@ Most rules are structural, dataflow, or semantic — more robust and easier to w
 Built-in Go rules are the "Secure Coding Rulepacks" — always present.  
 User YAML rules extend them. Same combiner resolves conflicts.
 
-## Fortify Mapping
+## SAST Concept Mapping
 
-| Fortify Concept | AgentShield Equivalent | Notes |
+| Traditional SAST Concept | AgentShield Equivalent | Notes |
 |----------------|----------------------|-------|
 | FunctionIdentifier | `executable` + `subcommand` | Command = function |
 | Parameters | `flags_all`/`flags_any` + `args` | Flags = method params |
@@ -60,23 +60,23 @@ User YAML rules extend them. Same combiner resolves conflicts.
 | Control flow pattern | `stateful.chain` | Operator-aware sequencing |
 | Content rules (regex) | `match.command_regex` | Already exists |
 
-## Innovation Beyond Fortify
+## Innovation Beyond Traditional SAST
 
 1. **Pipe-chain-aware analysis** — First-class `has_pipe`, `pipe_to`, `pipe_from` predicates.
-   Fortify doesn't analyze shell pipes; we do natively.
+   Traditional SAST tools don't analyze shell pipes; we do natively.
 
 2. **Operator-aware sequencing** — `&&`, `||`, `;` as control flow connectors.
    Stateful rules can express "download && execute" as a YAML pattern.
 
 3. **Sudo transparency** — `match_sudo: true` automatically matches sudo-wrapped variants.
-   No equivalent in Fortify (no sudo in source code analysis).
+   No equivalent in source code analysis tools (no sudo in source code).
 
 4. **Guardian layer** — Prompt injection detection is unique to agentic runtime.
-   Fortify has no equivalent (it's a build-time tool).
+   Build-time SAST tools have no equivalent.
 
 5. **Confidence-based combining** — Higher-layer rules (structural, semantic) override
    lower-layer rules (regex) when they disagree, using confidence scores.
-   Fortify uses severity + category; we add confidence weighting.
+   Traditional tools use severity + category; we add confidence weighting.
 
 ## Phase 1: Structural Match (YAML)
 
@@ -136,7 +136,7 @@ structural:
    The structural parser already identifies pipe operators and segments.
 
 5. **`negate`** — Allows structural ALLOW overrides: "if command IS this safe pattern, ALLOW."
-   Matches Fortify's suppression rules concept.
+   Similar to suppression rules in traditional SAST tools.
 
 6. **`match_sudo` is implicit** — The structural parser already strips sudo.
    All structural rules automatically handle sudo-wrapped variants. No flag needed.

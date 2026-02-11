@@ -4,7 +4,7 @@ package analyzer
 // rule from YAML. It matches source→sink data flows through pipes, redirects,
 // and command substitutions.
 //
-// Inspired by Fortify's taint tracking rules:
+// Inspired by classical taint tracking analysis:
 //   - Source: where data originates (credential files, /dev/zero, sensitive paths)
 //   - Sink: where data ends up (network commands, devices, cron)
 //   - Via: optional transform/encoding commands in between (base64, gzip)

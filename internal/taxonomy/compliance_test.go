@@ -7,7 +7,7 @@ import (
 
 // TestComplianceMappings validates that every compliance mapping in taxonomy
 // weakness YAML files references a valid standard and valid item ID.
-// This is the key validation test that replaces Fortify's manual CSV approach.
+// This is the key validation test that replaces a manual CSV-based compliance approach.
 func TestComplianceMappings(t *testing.T) {
 	standardsDir := "../../compliance/standards"
 	taxonomyDir := "../../taxonomy"

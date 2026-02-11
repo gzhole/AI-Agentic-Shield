@@ -72,8 +72,8 @@ type StructuralMatch struct {
 }
 
 // DataflowMatch defines a rule that matches source→sink data flows through
-// pipes, redirects, and command substitutions. Inspired by Fortify's taint
-// tracking: source (where data comes from) → via (transforms) → sink (where it goes).
+// pipes, redirects, and command substitutions. Inspired by classical taint
+// analysis: source (where data comes from) → via (transforms) → sink (where it goes).
 type DataflowMatch struct {
 	Source DataflowEndpoint `yaml:"source"`           // data origin
 	Sink   DataflowEndpoint `yaml:"sink"`             // data destination

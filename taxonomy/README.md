@@ -1,6 +1,6 @@
 # Agent Action Security Taxonomy
 
-A classification of security risks posed by AI agent command execution, modeled on [Fortify's Seven Pernicious Kingdoms](https://vulncat.fortify.com/en).
+A classification of security risks posed by AI agent command execution, modeled on the [Seven Pernicious Kingdoms](https://en.wikipedia.org/wiki/Seven_pernicious_kingdoms) software security taxonomy.
 
 ## The Seven Pernicious Kingdoms of Agent Action Security
 

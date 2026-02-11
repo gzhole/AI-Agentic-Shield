@@ -178,7 +178,7 @@ Structural rules automatically resolve common short↔long flag aliases:
 
 ### Dataflow Match
 
-Dataflow rules track data movement from **source** to **sink** through pipes, redirects, and command substitutions. Inspired by Fortify's taint tracking rules.
+Dataflow rules track data movement from **source** to **sink** through pipes, redirects, and command substitutions. Inspired by classical taint tracking analysis.
 
 **When to use dataflow:**
 - Detecting credential exfiltration (credential file → network command)
