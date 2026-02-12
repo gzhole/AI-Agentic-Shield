@@ -13,7 +13,7 @@ This project is one attempt at the "complete mediation" pattern [recommended by 
 ## Install
 
 ```bash
-brew tap gzhole/tap
+brew tap security-researcher-ca/tap
 brew install agentshield
 ```
 
